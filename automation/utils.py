@@ -133,8 +133,11 @@ def download_file(i):
        (path) (str): path to record file (or current if empty)
        (chunk_size) (int): chunck size in bytes (65536 by default)
        (text) (str): print text before downloaded status ("Downloaded: " by default)
-       (verify) (bool): verify SSL certificate if True (True by default)
-                        can be switched by global env MLC_UTILS_DOWNLOAD_VERIFY_SSL = no
+       (verify_ssl) (bool): verify SSL certificates (True by default).
+                          MLC_VERIFY_SSL overrides this option. Custom trust
+                          roots can be supplied through MLC_SSL_CA_FILE or
+                          ssl_ca_file. Certificate failures are not retried
+                          without verification.
 
     Returns:
        (CM return dict):
@@ -187,22 +190,12 @@ def download_file(i):
         verify = ca_file
 
     try:
-        try:
-            download = requests.get(
-                url,
-                stream=True,
-                allow_redirects=True,
-                verify=verify)
-            download.raise_for_status()
-        except requests.exceptions.SSLError as ssl_err:
-            if verify is not False:
-                print(f"WARNING: SSL verification failed: {ssl_err}")
-                print("Retrying without SSL verification...")
-                download = requests.get(
-                    url, stream=True, allow_redirects=True, verify=False)
-                download.raise_for_status()
-            else:
-                raise
+        download = requests.get(
+            url,
+            stream=True,
+            allow_redirects=True,
+            verify=verify)
+        download.raise_for_status()
 
         # Browser-like filename resolution: prefer the server's
         # Content-Disposition header, then the basename of the final
